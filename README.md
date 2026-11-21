@@ -1,6 +1,30 @@
-# PWA-MemeFinder-GD V1_1
+# PWA-MemeFinder-GD V1_2
 
-私人梗圖庫，GitHub Pages 靜態部署。無需 npm、後端或付費 AI。
+公開／私人梗圖庫，GitHub Pages 靜態部署。無需 npm、後端或付費 AI。
+
+## V1_2 更新：免登入訪客模式（2026-11-21）
+
+新增公開圖庫入口。網站管理者在 `guest-config.json` 設定一次 Drive API Key，資料夾開放「知道連結的任何人／檢視者」後，訪客只需貼上資料夾連結，無需 Google 帳號。
+
+可搜尋、放大、複製、分享、下載圖片；個人標記與收藏存本機，可匯出／匯入。讀取既有 `_meme_data` 共用標記，也支援根目錄完整備份作為備援。上傳、共用標記修改與 Drive 備份維持管理者登入模式。
+
+**初次啟用與排錯請先讀 [GUEST-SETUP.md](GUEST-SETUP.md)。** ZIP 預設 Key 留空，不能省略網站管理者的這次設定。
+
+### 升級到 V1_2
+
+將外層資料夾內全部檔案覆蓋 GitHub `PWA-MemeFinder-GD` 根目錄，包含新增的 `guest.mjs`、`guest-config.json`。既有 Client ID 與管理者資料保留。完成 Pages 部署後，設定 → 檢查更新，確認目前版本 V1_2。新版延續開啟自動檢查與安全套用更新，訪客也適用。
+
+若未來再次升級，請保留已填好的 `guest-config.json`，不要以空白範本覆蓋。
+
+新增：guest.mjs、guest-config.json、GUEST-SETUP.md、tests-guest.mjs。
+修改：app.mjs、core.mjs、index.html、style.css、sw.js、version.json、tests.mjs、README.md、CHANGELOG.md。
+保留：Drive 原始上傳、背景同步、連續標記、雲端備份、圖示、Manifest 與搜尋 Worker。
+
+### 驗證
+
+在解壓後資料夾執行 `node tests.mjs` 及 `node tests-guest.mjs`（Node.js 22+）。涵蓋原本背景同步／備份，以及匿名讀取、分頁、權限錯誤、本機資料隔離與訪客備份。測試不會呼叫真實 Google API。手機尺寸介面已驗證載入、搜尋、開啟預覽；真實 Drive 與實體 iPhone 剪貼簿仍需部署後驗收。
+
+以下保留既有管理者功能操作說明。
 
 
 ## V1_1 更新與操作（2026-11-21）
@@ -44,13 +68,13 @@
 ## 1. 部署 GitHub Pages
 
 1. 在 GitHub 建立 repository：`PWA-MemeFinder-GD`。
-2. 解壓縮 ZIP，將內部所有程式檔案放在 repository 根目錄。不要把外層 `PWA-MemeFinder-GD-V1_1` 資料夾整個再包一層上傳。確認根目錄可看到 index.html。
+2. 解壓縮 ZIP，將內部所有程式檔案放在 repository 根目錄。不要把外層 `PWA-MemeFinder-GD-V1_2` 資料夾整個再包一層上傳。確認根目錄可看到 index.html。
 3. Settings → Pages → Build and deployment → Deploy from a branch。
 4. 選 main 分支、/(root)，Save。
 5. 等待 GitHub Pages 部署完成。以 lihe-source 帳號為例，預期網址為 https://lihe-source.github.io/PWA-MemeFinder-GD/ 。
 6. 先在瀏覽器完成 Google 設定；iPhone 使用 Safari 開啟，分享 → 加入主畫面。安裝版可能需再次登入。
 
-## 2. Google Cloud 與 OAuth（必要）
+## 2. Google Cloud 與 OAuth（管理者模式才需要）
 
 1. 開啟 https://console.cloud.google.com/ ，建立或選取專案。
 2. APIs & Services → Library → 搜尋 Google Drive API 並 Enable。
