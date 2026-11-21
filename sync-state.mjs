@@ -1,0 +1,4 @@
+// Merge against the CURRENT local array after remote reads, never an old snapshot.
+export function mergeEvents(local,remote){const map=new Map(local.map(e=>[e.id,e]));for(const e of remote){if(!map.has(e.id))map.set(e.id,e);else if(e.driveId&&!map.get(e.id).driveId)map.set(e.id,{...map.get(e.id),driveId:e.driveId});}return [...map.values()];}
+export function ackPending(pending,id){return pending.filter(x=>x!==id);}
+export function makeBackup({folder,files,events,synonyms,record,version}){return {schema:1,kind:'MemeFinder-mark-backup',version,folder,createdAt:new Date().toISOString(),files:structuredClone(files),events:structuredClone(events),synonyms:structuredClone(synonyms),records:structuredClone(files.map(f=>({fileId:f.id,name:f.name,path:f.path||'',missing:!!f.missing,...record(events,f.id)})))};}
