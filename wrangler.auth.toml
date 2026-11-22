@@ -1,0 +1,24 @@
+name = "memefinder-auth"
+main = "auth-worker.mjs"
+compatibility_date = "2026-11-21"
+workers_dev = true
+
+[vars]
+APP_URL = "https://lihe-source.github.io/PWA-MemeFinder-GD/"
+AUTH_URL = "https://memefinder-auth.YOUR-SUBDOMAIN.workers.dev"
+GOOGLE_CLIENT_ID = "YOUR-CLIENT-ID.apps.googleusercontent.com"
+ALLOWED_EMAILS = ""
+
+[[d1_databases]]
+binding = "DB"
+database_name = "memefinder-auth"
+database_id = "REPLACE-WITH-D1-DATABASE-ID"
+
+[triggers]
+crons = ["17 19 * * *"]
+
+[observability]
+enabled = false
+
+# Set GOOGLE_CLIENT_SECRET and TOKEN_ENCRYPTION_KEY using Worker secrets.
+# Never put actual secrets in this file or in GitHub.

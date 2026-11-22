@@ -1,13 +1,35 @@
-# PWA-MemeFinder-GD V1_1
+# PWA-MemeFinder-GD V1_3
 
-私人梗圖庫，GitHub Pages 靜態部署。無需 npm、後端或付費 AI。
+以 **V1_1** 為基底，只新增 Google 持續登入。取消 V1_2 的公開圖庫、訪客與免登入功能。原有搜尋、連續標記、圖片複製／分享、上傳、背景同步與 Drive 備份保留。
 
+## 先完成一次設定
 
-## V1_1 更新與操作（2026-11-21）
+前端仍部署 GitHub Pages；持續登入採用本包的 **Cloudflare Worker + D1 授權服務**。只有 GitHub 靜態檔案或原本 Client ID，不能在關閉 PWA 後可靠地自動續期。
 
-### 升級
+請先依 [AUTH-SETUP.md](AUTH-SETUP.md) 設定服務，再貼入 PWA 設定的「持續登入授權服務網址」。不需 Google API Key。首次在每個瀏覽器／安裝版完成一次 Google 授權，之後同一裝置自動恢復。Safari 與主畫面 PWA 可能有不同儲存空間，因此可能各需首次授權。
 
-將 ZIP 外層資料夾內的**全部檔案**覆蓋 GitHub repository 根目錄，務必包含新增的 `sync-state.mjs`，不要只上傳 index.html。GitHub Pages 完成部署後，PWA → 設定 → 檢查更新，確認目前版本為 V1_1。沿用原本的網址、Google Client ID、Drive 資料夾及本機資料，不需重新安裝或清除網站資料。建議升級前先匯出原有標記備份。
+- 開啟、切回前景、網路恢復時自動連線，使用中提前更新 access token。
+- Drive 回傳 401 時自動更新授權並重試一次；多個請求共用同一次續期。
+- 網路或服務暫時故障不清除裝置工作階段、草稿及待同步記錄。
+- 同帳號續期不重新載入資料或關閉正在編輯的標記。
+- 手動登出會清除本機授權工作階段、撤銷伺服器上的該裝置工作階段，並停用自動恢復。離線登出會明確提示尚未撤銷遠端工作階段。
+- 保留一般 Google 登入作為服務未設定時的備用方式；備用方式仍需於 token 過期或重開後手動連線。
+
+這是持續登入與自動續期，不是保證永不失效。Google 撤銷授權、政策限制、清除網站資料、或此裝置連續 90 天未連線，仍需重新授權。Google External / Testing 專案的 Drive refresh token 通常 7 天到期；正式長期使用請依 Google 專案適用的發布／驗證要求設定。
+
+## 更新 GitHub Pages
+
+1. 升級前先在設定匯出標記備份，並等待現有同步完成。
+2. 解壓縮本包，把 `PWA-MemeFinder-GD-V1_3` 內的前端檔案放到 GitHub repository 根目錄，讓根目錄直接有 `index.html`。前端檔案清單見 [UPDATE-FILES.md](UPDATE-FILES.md)。不要增加外層部署路徑。
+3. 完整替換程式檔，尤其 `app.mjs`、`drive.mjs`、`auth-session.mjs`、`core.mjs`、`sw.js`、`version.json`、`index.html`，並新增 `auth-config.json`。
+4. 曾使用 V1_2 時，移除 repository 的 `guest.mjs`、`guest-config.json`、`tests-guest.mjs`、`GUEST-SETUP.md`。本版本不讀取這些檔案，也不載入匿名圖庫。本機舊資料不會被刪除。
+5. GitHub → Settings → Pages → main / root，等候部署完成。原網址維持 `https://lihe-source.github.io/PWA-MemeFinder-GD/`。
+6. PWA 設定 → 檢查更新，確認目前版本 V1_3。程式開啟也會自動檢查並在同步、編輯、登入結束後更新。不需重新安裝，不要清除網站資料。
+7. 依 AUTH-SETUP 完成 Worker 後儲存服務網址與原 Drive 資料夾，按「連線 Google」完成首次授權。重新使用相同 Google 帳號，可接續原本標記、草稿、上傳與備份。
+
+Worker 程式／SQL／設定範本可留在本機部署。**Client Secret、TOKEN_ENCRYPTION_KEY 與任何真實 token 不可放進 GitHub／前端 JSON／ZIP 分享給他人**。範本沒有真實憑證。不要清除 Drive 的 `_meme_data` 或備份檔。
+
+## V1_1 原有操作
 
 ### 連續標記
 
@@ -40,30 +62,6 @@
 ### 異常狀態
 
 未連線時可繼續本機標記；畫面顯示等待同步。只有收到 Drive 寫入成功才移除待同步記錄。備份失敗時顯示錯誤，不假稱成功；重新連線後可重試。不要在尚有待同步／待備份資料時清除瀏覽器網站資料。
-
-## 1. 部署 GitHub Pages
-
-1. 在 GitHub 建立 repository：`PWA-MemeFinder-GD`。
-2. 解壓縮 ZIP，將內部所有程式檔案放在 repository 根目錄。不要把外層 `PWA-MemeFinder-GD-V1_1` 資料夾整個再包一層上傳。確認根目錄可看到 index.html。
-3. Settings → Pages → Build and deployment → Deploy from a branch。
-4. 選 main 分支、/(root)，Save。
-5. 等待 GitHub Pages 部署完成。以 lihe-source 帳號為例，預期網址為 https://lihe-source.github.io/PWA-MemeFinder-GD/ 。
-6. 先在瀏覽器完成 Google 設定；iPhone 使用 Safari 開啟，分享 → 加入主畫面。安裝版可能需再次登入。
-
-## 2. Google Cloud 與 OAuth（必要）
-
-1. 開啟 https://console.cloud.google.com/ ，建立或選取專案。
-2. APIs & Services → Library → 搜尋 Google Drive API 並 Enable。
-3. Google Auth Platform：設定 Branding（應用程式名稱、支援信箱、聯絡信箱）及 Audience。
-4. 個人測試採 External / Testing，在 Test users 加入實際使用的 Google 帳號；若 Google 顯示未驗證提示，先核對專案確為自己建立。組織帳號可能受管理員限制。
-5. Data Access 新增 `https://www.googleapis.com/auth/drive` 範圍。這是受限制的廣泛讀寫授權；程式本身只操作指定資料夾及其中的 `_meme_data`，但 Google 授權不是單一資料夾權限。對外公開服務須處理 Google OAuth 驗證要求。
-6. Clients → Create client → Web application。
-7. Authorized JavaScript origins 填 `https://lihe-source.github.io`（沒有尾斜線、沒有 `/PWA-MemeFinder-GD` 路徑）。使用其他 GitHub 帳號或自訂網域時填實際來源。此程式採 popup token flow，不需設定 redirect URI。
-8. 複製 OAuth Client ID，以 `.apps.googleusercontent.com` 結尾。不要填 Client Secret、API Key 或服務帳戶 JSON。
-9. 在 Google Drive 建立一個可寫入的梗圖資料夾，取得資料夾網址。建議使用「我的雲端硬碟」自己擁有的資料夾；V1_0 未針對 Workspace Shared Drives 專門驗證。
-10. PWA → 設定 → 貼入 Client ID 和資料夾網址 → 儲存設定 → 右上角「連線 Google」。授權後自動掃描。
-
-Google 帳號提示與資料夾設定會記住，但 access token 僅保留於記憶體，不儲存密鑰。重新開啟、token 過期或 Google 要求時，需點擊連線；不保證永久自動登入。只靠 API Key 不能讀取私有 Drive 圖片。
 
 ## 3. 使用
 
@@ -102,19 +100,15 @@ V1_0 沒有 AI 辨識或 OCR；標記與圖片文字由使用者輸入，檔名�
 - 標記同步失敗：本機草稿／待同步記錄保留，先匯出備份，再重新連線並同步。
 - 部署後仍舊版：確認 Pages workflow 已成功，再按檢查更新。更新時不要只替換 index.html。
 
-## 7. V1_1 驗證範圍
 
-已通過 JavaScript 語法檢查、同步讀取期間新增標記不被覆蓋、儲存下一張不等待雲端、上傳失敗保留同一 Drive ID 重試、備份檔名及目的資料夾、備份期間新標記保留待備份狀態、備註搜尋及僅備註的已標記判斷。測試程式 `tests.mjs` 可在 Node.js 22+ 執行，不會連線真實 Google。
+## V1_3 驗證
 
-已在 Chromium 的 390×844 手機尺寸容器驗證三張連續標記、縮圖、備註讀回、預覽按鈕的字色／底色、設定頁與未登入備份錯誤提示。這不是實體 iPhone 測試；iPhone Safari/PWA 的鍵盤、手勢及系統剪貼簿，與真實 Drive 寫入仍需使用者裝置／帳號驗證。
+以 Node.js 24 執行 `node tests.mjs`、`node tests-auth.mjs`、`node tests-integration.mjs`；不需套件、不會連線真實 Google。測試涵蓋背景同步／下一張／備份，以及 OAuth state、PKCE、裝置交接、加密、續期併發、401 重試、離線、撤銷、登出、遲到回應、設定頁事件與同帳號續期不覆蓋編輯。所有 JavaScript 已進行語法檢查。
 
-官方參考：
-- https://developers.google.com/workspace/drive/api/guides/api-specific-auth
-- https://developers.google.com/identity/oauth2/web/guides/get-google-api-clientid
-- https://developers.google.com/identity/oauth2/web/guides/use-token-model
-- https://developers.google.com/workspace/drive/api/guides/manage-uploads
-- https://webkit.org/blog/10855/async-clipboard-api/
+此版尚未以真實 Google 帳號、Cloudflare 正式服務與實體 iPhone 進行端到端驗證。瀏覽器自動化在製作環境受限，設定頁以程式整合測試驗證事件流程；不將模擬測試視為實機測試。
 
-## 檔案
-
-sync-state.mjs（同步合併與備份快照）、index.html（介面）、style.css（響應式樣式）、app.mjs（流程與 UI）、core.mjs（資料與搜尋）、drive.mjs（Google API）、search-worker.js（搜尋背景處理）、sw.js（離線與更新）、manifest.webmanifest、version.json、icon.svg、icon-192.png、icon-512.png、.nojekyll、README.md、CHANGELOG.md。
+官方參考（查核 2026-11-22）：
+- https://developers.google.com/identity/protocols/oauth2/web-server
+- https://developers.google.com/identity/protocols/oauth2
+- https://developers.cloudflare.com/d1/get-started/
+- https://developers.cloudflare.com/workers/configuration/secrets/
