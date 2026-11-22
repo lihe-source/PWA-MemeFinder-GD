@@ -1,4 +1,4 @@
-export const VERSION='V1_3';
+export const VERSION='V1_4';
 export const normalize=s=>String(s||'').normalize('NFKC').toLowerCase().replace(/[臺]/g,'台').replace(/[語]/g,'语').replace(/[無]/g,'无').replace(/\s+/g,' ').trim();
 export const tags=s=>[...new Set(String(s||'').split(/[,，、;；\n]/).map(x=>x.trim()).filter(Boolean))];
 export function heads(events,id){const all=events.filter(e=>e.fileId===id), parents=new Set(all.flatMap(e=>e.parents||[]));return all.filter(e=>!parents.has(e.id)).sort((a,b)=>a.time.localeCompare(b.time)||a.id.localeCompare(b.id));}

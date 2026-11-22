@@ -1,35 +1,25 @@
-# PWA-MemeFinder-GD V1_3
+# PWA-MemeFinder-GD V1_4
 
-以 **V1_1** 為基底，只新增 Google 持續登入。取消 V1_2 的公開圖庫、訪客與免登入功能。原有搜尋、連續標記、圖片複製／分享、上傳、背景同步與 Drive 備份保留。
+以 V1_1 功能為基底，參考附件 `PWA-Japanese-GD-V1_5_13-FLAT(1).zip` 的登入實作。**只填 OAuth Web Client ID 與 Google Drive 資料夾 ID／網址**，不需要 API Key、Client Secret、Cloudflare Worker 或 D1。
 
-## 先完成一次設定
+## 登入方式
 
-前端仍部署 GitHub Pages；持續登入採用本包的 **Cloudflare Worker + D1 授權服務**。只有 GitHub 靜態檔案或原本 Client ID，不能在關閉 PWA 後可靠地自動續期。
+1. 設定填入 Client ID 與 Drive 資料夾，儲存後按「連線 Google」，完成首次授權。
+2. 記住帳號與設定；重新整理或返回前景時，自動恢復目前工作階段內尚未過期的授權。
+3. 有效期限到期／Google 回傳 401 時，保留帳號、圖片清單、草稿與同步佇列，按右上「重新連線 Google」即可重新取得授權。已知帳號會以 `login_hint` 帶入，使用 `prompt: ''` 減少重複選帳號。
+4. 重新連線成功後補送待同步標記。手動登出會停止自動恢復，原帳號草稿保留。
 
-請先依 [AUTH-SETUP.md](AUTH-SETUP.md) 設定服務，再貼入 PWA 設定的「持續登入授權服務網址」。不需 Google API Key。首次在每個瀏覽器／安裝版完成一次 Google 授權，之後同一裝置自動恢復。Safari 與主畫面 PWA 可能有不同儲存空間，因此可能各需首次授權。
+**附件也是「有效授權恢復＋記住帳號＋點擊重連」，並非永久背景續期。** GIS token 模式沒有 refresh token；Google 要求以使用者操作重新取得過期授權。關閉分頁或 PWA 被系統終止後，sessionStorage 可能消失，屆時需點一下重新連線。Safari 與主畫面版可能各有獨立工作階段。此版不自動開啟登入彈窗，也不要求新增任何後端設定。
 
-- 開啟、切回前景、網路恢復時自動連線，使用中提前更新 access token。
-- Drive 回傳 401 時自動更新授權並重試一次；多個請求共用同一次續期。
-- 網路或服務暫時故障不清除裝置工作階段、草稿及待同步記錄。
-- 同帳號續期不重新載入資料或關閉正在編輯的標記。
-- 手動登出會清除本機授權工作階段、撤銷伺服器上的該裝置工作階段，並停用自動恢復。離線登出會明確提示尚未撤銷遠端工作階段。
-- 保留一般 Google 登入作為服務未設定時的備用方式；備用方式仍需於 token 過期或重開後手動連線。
+## 升級
 
-這是持續登入與自動續期，不是保證永不失效。Google 撤銷授權、政策限制、清除網站資料、或此裝置連續 90 天未連線，仍需重新授權。Google External / Testing 專案的 Drive refresh token 通常 7 天到期；正式長期使用請依 Google 專案適用的發布／驗證要求設定。
+解壓後把外層 `PWA-MemeFinder-GD-V1_4` 裡的所有前端檔案覆蓋 repository 根目錄；新增的 `browser-auth.mjs` 必須一起上傳。保持原網址，PWA → 設定 → 檢查更新，確認版本 V1_4。開啟時也自動檢查並在編輯／同步／登入結束後更新。
 
-## 更新 GitHub Pages
+從 V1_3 升級請依 UPDATE-FILES.md 移除舊授權服務檔；PWA 不再讀取或呼叫舊 Worker。程式會清掉本機舊 Worker 連線設定與裝置 session，保留原本 Client ID、資料夾、帳號、圖片、標記與草稿。若先前只填 Worker 網址，需補填 OAuth Client ID。舊 Cloudflare 雲端資源不會由 PWA 自動刪除；若先前已部署，可在 Cloudflare 停用不再使用的服務。
 
-1. 升級前先在設定匯出標記備份，並等待現有同步完成。
-2. 解壓縮本包，把 `PWA-MemeFinder-GD-V1_3` 內的前端檔案放到 GitHub repository 根目錄，讓根目錄直接有 `index.html`。前端檔案清單見 [UPDATE-FILES.md](UPDATE-FILES.md)。不要增加外層部署路徑。
-3. 完整替換程式檔，尤其 `app.mjs`、`drive.mjs`、`auth-session.mjs`、`core.mjs`、`sw.js`、`version.json`、`index.html`，並新增 `auth-config.json`。
-4. 曾使用 V1_2 時，移除 repository 的 `guest.mjs`、`guest-config.json`、`tests-guest.mjs`、`GUEST-SETUP.md`。本版本不讀取這些檔案，也不載入匿名圖庫。本機舊資料不會被刪除。
-5. GitHub → Settings → Pages → main / root，等候部署完成。原網址維持 `https://lihe-source.github.io/PWA-MemeFinder-GD/`。
-6. PWA 設定 → 檢查更新，確認目前版本 V1_3。程式開啟也會自動檢查並在同步、編輯、登入結束後更新。不需重新安裝，不要清除網站資料。
-7. 依 AUTH-SETUP 完成 Worker 後儲存服務網址與原 Drive 資料夾，按「連線 Google」完成首次授權。重新使用相同 Google 帳號，可接續原本標記、草稿、上傳與備份。
+升級前可先匯出標記備份。不要清除網站資料或 Drive 的 `_meme_data`。
 
-Worker 程式／SQL／設定範本可留在本機部署。**Client Secret、TOKEN_ENCRYPTION_KEY 與任何真實 token 不可放進 GitHub／前端 JSON／ZIP 分享給他人**。範本沒有真實憑證。不要清除 Drive 的 `_meme_data` 或備份檔。
-
-## V1_1 原有操作
+## 原有功能
 
 ### 連續標記
 
@@ -62,6 +52,30 @@ Worker 程式／SQL／設定範本可留在本機部署。**Client Secret、TOKE
 ### 異常狀態
 
 未連線時可繼續本機標記；畫面顯示等待同步。只有收到 Drive 寫入成功才移除待同步記錄。備份失敗時顯示錯誤，不假稱成功；重新連線後可重試。不要在尚有待同步／待備份資料時清除瀏覽器網站資料。
+
+## 1. 部署 GitHub Pages
+
+1. 在 GitHub 建立 repository：`PWA-MemeFinder-GD`。
+2. 解壓縮 ZIP，將內部所有程式檔案放在 repository 根目錄。不要把外層 `PWA-MemeFinder-GD-V1_4` 資料夾整個再包一層上傳。確認根目錄可看到 index.html。
+3. Settings → Pages → Build and deployment → Deploy from a branch。
+4. 選 main 分支、/(root)，Save。
+5. 等待 GitHub Pages 部署完成。以 lihe-source 帳號為例，預期網址為 https://lihe-source.github.io/PWA-MemeFinder-GD/ 。
+6. 先在瀏覽器完成 Google 設定；iPhone 使用 Safari 開啟，分享 → 加入主畫面。安裝版可能需再次登入。
+
+## 2. Google Cloud 與 OAuth（必要）
+
+1. 開啟 https://console.cloud.google.com/ ，建立或選取專案。
+2. APIs & Services → Library → 搜尋 Google Drive API 並 Enable。
+3. Google Auth Platform：設定 Branding（應用程式名稱、支援信箱、聯絡信箱）及 Audience。
+4. 個人測試採 External / Testing，在 Test users 加入實際使用的 Google 帳號；若 Google 顯示未驗證提示，先核對專案確為自己建立。組織帳號可能受管理員限制。
+5. Data Access 新增 `https://www.googleapis.com/auth/drive` 範圍。這是受限制的廣泛讀寫授權；程式本身只操作指定資料夾及其中的 `_meme_data`，但 Google 授權不是單一資料夾權限。對外公開服務須處理 Google OAuth 驗證要求。
+6. Clients → Create client → Web application。
+7. Authorized JavaScript origins 填 `https://lihe-source.github.io`（沒有尾斜線、沒有 `/PWA-MemeFinder-GD` 路徑）。使用其他 GitHub 帳號或自訂網域時填實際來源。此程式採 popup token flow，不需設定 redirect URI。
+8. 複製 OAuth Client ID，以 `.apps.googleusercontent.com` 結尾。不要填 Client Secret、API Key 或服務帳戶 JSON。
+9. 在 Google Drive 建立一個可寫入的梗圖資料夾，取得資料夾網址。建議使用「我的雲端硬碟」自己擁有的資料夾；V1_0 未針對 Workspace Shared Drives 專門驗證。
+10. PWA → 設定 → 貼入 Client ID 和資料夾網址 → 儲存設定 → 右上角「連線 Google」。授權後自動掃描。
+
+帳號與資料夾設定會記住。有效 access token 只存於目前頁面的 sessionStorage 與記憶體，重新整理與瀏覽器保留工作階段時自動恢復；不寫入 localStorage、IndexedDB 或備份。授權過期或工作階段被關閉／系統清除時，按「重新連線 Google」，使用 login_hint 與空白 prompt 帶入原帳號。Google 仍可能要求登入或確認，不保證跳過所有視窗。
 
 ## 3. 使用
 
@@ -100,15 +114,13 @@ V1_0 沒有 AI 辨識或 OCR；標記與圖片文字由使用者輸入，檔名�
 - 標記同步失敗：本機草稿／待同步記錄保留，先匯出備份，再重新連線並同步。
 - 部署後仍舊版：確認 Pages workflow 已成功，再按檢查更新。更新時不要只替換 index.html。
 
+## 7. V1_4 驗證範圍
 
-## V1_3 驗證
+使用 Node.js 24 執行 `node tests.mjs`、`node tests-browser-auth.mjs`、`node tests-auth-integration.mjs`。涵蓋 V1_1 背景同步／下一張／備份、有效授權恢復、過期／401、同時點擊合併、取消／逾時、權限不足、Client ID／scope／帳號隔離、儲存空間失敗、登出與遲到回應、設定事件及重連補同步。使用模擬 Google 回應，沒有連到真實帳號。
 
-以 Node.js 24 執行 `node tests.mjs`、`node tests-auth.mjs`、`node tests-integration.mjs`；不需套件、不會連線真實 Google。測試涵蓋背景同步／下一張／備份，以及 OAuth state、PKCE、裝置交接、加密、續期併發、401 重試、離線、撤銷、登出、遲到回應、設定頁事件與同帳號續期不覆蓋編輯。所有 JavaScript 已進行語法檢查。
+本版已進行 JavaScript 語法與程式整合檢查，尚未以實體 iPhone、Google 帳號與正式 GitHub 網站驗證。
 
-此版尚未以真實 Google 帳號、Cloudflare 正式服務與實體 iPhone 進行端到端驗證。瀏覽器自動化在製作環境受限，設定頁以程式整合測試驗證事件流程；不將模擬測試視為實機測試。
+官方參考：
+- https://developers.google.com/identity/oauth2/web/guides/use-token-model
+- https://developers.google.com/identity/oauth2/web/reference/js-reference
 
-官方參考（查核 2026-11-22）：
-- https://developers.google.com/identity/protocols/oauth2/web-server
-- https://developers.google.com/identity/protocols/oauth2
-- https://developers.cloudflare.com/d1/get-started/
-- https://developers.cloudflare.com/workers/configuration/secrets/

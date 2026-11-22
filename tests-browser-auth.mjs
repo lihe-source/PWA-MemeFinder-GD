@@ -1,0 +1,34 @@
+import assert from 'node:assert/strict';
+import {BrowserAuth,DRIVE_SCOPE} from './browser-auth.mjs';
+import * as drive from './drive.mjs';
+const saved=new Map(),storage={getItem:k=>saved.get(k),setItem:(k,v)=>saved.set(k,v),removeItem:k=>saved.delete(k)};
+let now=1000000,config,requestArgs,requests=0,states=[],applied='',identity=[];
+const api={initTokenClient(c){config=c;return {requestAccessToken(args){requestArgs=args;requests++;}};},hasGrantedAllScopes:()=>true};
+const options={clientId:'client.apps.googleusercontent.com',storage,key:'test',oauth:()=>api,now:()=>now,onState:(...args)=>states.push(args),onToken:t=>applied=t,onIdentity:async i=>identity.push(i)};
+const originalFetch=globalThis.fetch;
+globalThis.fetch=async()=>Response.json({user:{displayName:'Rex',emailAddress:'owner@example.com'}});
+const clients=[];const make=(extra={})=>{const a=new BrowserAuth({...options,...extra});clients.push(a);return a;};
+try{
+ const a=make();assert.equal(await a.restore('owner@example.com'),false);assert.equal(requests,0);
+ const p=a.connect();assert.equal(requests,1);assert.equal(requestArgs.prompt,'select_account');assert.strictEqual(a.connect(),p);
+ await config.callback({access_token:'one',expires_in:3600});assert.equal(await p,'one');assert.equal(applied,'one');assert.equal(saved.has('test'),true);
+ a.suspend();const b=make();assert.equal(await b.restore('owner@example.com'),true);assert.equal(requests,1);assert.equal(applied,'one');
+ console.log('PASS direct-click GIS request, single flight and valid session restoration without OAuth');
+ now+=3600001;assert.equal(await b.restore('owner@example.com'),false);assert.equal(saved.has('test'),false);assert.equal(requests,1);assert.equal(states.at(-1)[0],'remembered');
+ const p2=b.connect('owner@example.com');assert.equal(requestArgs.prompt,'');assert.equal(requestArgs.login_hint,'owner@example.com');await config.callback({access_token:'two',expires_in:3600});await p2;
+ assert.equal(await b.ensure(),'two');assert.equal(requests,2);await assert.rejects(b.ensure('two'),/重新連線/);assert.equal(requests,2);
+ console.log('PASS expiry and 401 preserve remembered state without background popups; reconnect uses account hint and empty prompt');
+ const p3=b.connect('owner@example.com');const late=config;const rejected=assert.rejects(p3,/取消/);b.logout();await rejected;await late.callback({access_token:'late',expires_in:3600});assert.equal(saved.has('test'),false);
+ console.log('PASS logout cancels in-flight login and ignores late OAuth callback');
+ saved.set('test',JSON.stringify({token:'old',expires:now+3600000,clientId:'different',scope:DRIVE_SCOPE,account:'owner@example.com'}));assert.equal(await make().restore(),false);
+ saved.set('test',JSON.stringify({token:'old',expires:now+3600000,clientId:options.clientId,scope:'other',account:'owner@example.com'}));assert.equal(await make().restore(),false);
+ const c=make();const wrong=c.connect('other@example.com');await config.callback({access_token:'wrong-account',expires_in:3600});await assert.rejects(wrong,/原本/);assert.equal(saved.has('test'),false);
+ console.log('PASS client/scope/account boundaries reject mismatched sessions');
+ const d=make({storage:{getItem(){throw Error('blocked');},setItem(){throw Error('blocked');},removeItem(){throw Error('blocked');}}});const mem=d.connect('owner@example.com');await config.callback({access_token:'memory',expires_in:3600});await mem;assert.equal(await d.ensure(),'memory');d.suspend();
+ const e=make({timeout:10});const timeout=e.connect();const oldConfig=config;await assert.rejects(timeout,/逾時/);await oldConfig.callback({access_token:'too-late',expires_in:3600});assert.equal(e.session,null);
+ const f=make();const denied=f.connect();api.hasGrantedAllScopes=()=>false;await config.callback({access_token:'partial',expires_in:3600});await assert.rejects(denied,/權限/);api.hasGrantedAllScopes=()=>true;
+ console.log('PASS storage failure supports memory-only login; timeouts and insufficient scopes are explicit');
+ let count=0;const g=make({onToken:(t,s)=>drive.setToken(t,s)});const login=g.connect();await config.callback({access_token:'valid',expires_in:3600});await login;
+ drive.setRefreshHandler(t=>g.ensure(t));globalThis.fetch=async()=>{count++;return new Response('{}',{status:401});};await assert.rejects(drive.api('test'),/重新連線/);assert.equal(count,1);assert.equal(g.session,null);
+ console.log('PASS Drive 401 clears rejected token and pauses work without repeated requests');
+}finally{for(const c of clients)c.suspend();drive.setRefreshHandler(null);drive.disconnect();globalThis.fetch=originalFetch;}

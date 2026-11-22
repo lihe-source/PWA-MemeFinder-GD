@@ -1,64 +1,17 @@
-# V1_3 更新檔案清單
+# V1_4 更新檔案
 
-基底：V1_1。這是獨立新版本，未包含 V1_2 訪客功能。不要只覆蓋 index.html。
+請使用完整包。外層資料夾名稱與 ZIP 相同，內部程式檔平放；上傳 GitHub 時，將內部檔案放 repository 根目錄，直接能看到 index.html。
 
-## 前端部署 GitHub Pages
+相較 V1_1：
 
-將以下檔案放 repository 根目錄：
+- 新增：browser-auth.mjs、tests-browser-auth.mjs、tests-auth-integration.mjs、AUTH-REFERENCE.md、UPDATE-FILES.md。
+- 修改：app.mjs、drive.mjs、index.html、core.mjs、sw.js、version.json、tests.mjs、README.md、CHANGELOG.md。
+- 沿用：style.css、sync-state.mjs、search-worker.js、manifest.webmanifest、icon.svg、icon-192.png、icon-512.png、.nojekyll。
 
-- `index.html`
-- `style.css`
-- `app.mjs`
-- `core.mjs`
-- `drive.mjs`
-- `sync-state.mjs`
-- `auth-session.mjs`
-- `auth-config.json`
-- `search-worker.js`
-- `sw.js`
-- `manifest.webmanifest`
-- `version.json`
-- `icon.svg`
-- `icon-192.png`
-- `icon-512.png`
-- `.nojekyll`
-- `README.md`
-- `CHANGELOG.md`
-- `AUTH-SETUP.md`
-- `UPDATE-FILES.md`
+從 V1_3 升級時，另外移除 repository 的 auth-session.mjs、auth-config.json、auth-worker.mjs、auth-schema.sql、wrangler.auth.toml、AUTH-SETUP.md、tests-auth.mjs、tests-integration.mjs。V1_4 不會讀取或呼叫這些舊檔案。
 
-## 授權服務部署 Cloudflare
+從 V1_2 升級時，移除 guest.mjs、guest-config.json、tests-guest.mjs、GUEST-SETUP.md。
 
-`auth-worker.mjs`、`auth-schema.sql`、`wrangler.auth.toml`。依 AUTH-SETUP.md 建立與設定；這些檔案放 GitHub Pages 不會自動產生後端服務。
+不刪除 Drive 的圖片、_meme_data 或備份。不要清除瀏覽器網站資料。完成 GitHub Pages 部署後，PWA → 設定 → 檢查更新，確認目前版本 V1_4。
 
-## 測試（留本機即可）
-
-`tests.mjs`、`tests-auth.mjs`、`tests-integration.mjs`。Node.js 24，逐一執行。
-
-## 相較 V1_1 修改
-
-- `tests.mjs`
-- `CHANGELOG.md`
-- `README.md`
-- `app.mjs`
-- `core.mjs`
-- `drive.mjs`
-- `index.html`
-- `sw.js`
-- `version.json`
-
-## 相較 V1_1 新增
-
-- `AUTH-SETUP.md`
-- `UPDATE-FILES.md`
-- `auth-config.json`
-- `auth-schema.sql`
-- `auth-session.mjs`
-- `auth-worker.mjs`
-- `tests-auth.mjs`
-- `tests-integration.mjs`
-- `wrangler.auth.toml`
-
-## 從 V1_2 更新
-
-移除 `guest.mjs`、`guest-config.json`、`tests-guest.mjs`、`GUEST-SETUP.md`。不刪除 Google Drive 的圖片、`_meme_data` 與備份。本機原帳號資料格式不變，使用原帳號連線即可接續。
+測試檔與 Markdown 文件可一起放 repository；不影響執行。程式只需要靜態 GitHub Pages，無 npm build、無後端服務部署。

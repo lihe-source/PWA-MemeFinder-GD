@@ -11,7 +11,7 @@ const base={title:'',tags:['貓'],scene:'',phrase:'',text:'',notes:'想下班',c
 const rev=(id,parents=[])=>({schema:1,id,fileId:'image1',parents,time:'2026-11-21T00:00:00Z',data:structuredClone(base)});
 let store=new Map(),sent=[],generation=0,remote=[],pause=null,failWrite=false;
 const elements=new Map();const $=id=>{if(!elements.has(id))elements.set(id,{textContent:'',disabled:false,close(){},open:true});return elements.get(id);};
-const ctx=vm.createContext({mergeEvents,ackPending,makeBackup,heads,record,validEvent,structuredClone,crypto:{randomUUID},Date,Set,Map,JSON,console,VERSION:'V1_3',navigator:{onLine:true},$,
+const ctx=vm.createContext({mergeEvents,ackPending,makeBackup,heads,record,validEvent,structuredClone,crypto:{randomUUID},Date,Set,Map,JSON,console,VERSION:'V1_4',navigator:{onLine:true},$,
  drive:{connected:()=>true,children:async()=>{if(pause)await pause;return remote.map(e=>({id:e.driveId,name:e.id+'.json',mimeType:'application/json'}));},media:async id=>new Blob([JSON.stringify(remote.find(e=>e.driveId===id))]),generateId:async()=>`drive-${++generation}`,writeJSON:async(parent,id,data,name)=>{if(failWrite){failWrite=false;throw Error('simulated connection failure');}sent.push({parent,id,data:structuredClone(data),name});}},
  put:async(db,k,v)=>{store.set(k,structuredClone(v));},get:async(db,k)=>structuredClone(store.get(k)),del:async(db,k)=>store.delete(k),
  requireScope(){},ensureMeta:async()=>{},status(){},persistCfg(){},toast(){},fail(e){throw e;},scheduleSync(){},scheduleBackup(){},maybeActivate(){},clearTimeout(){},render(){},formData:()=>({...base,notes:'第二張備註'}),edit:async()=>{},
